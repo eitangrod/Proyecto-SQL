@@ -416,10 +416,35 @@ FROM Cronograma c
 JOIN Disciplina d ON c.id_disciplina = d.id_disciplina
 WHERE (SELECT COUNT(*) FROM Reserva r WHERE r.id_cronograma = c.id_cronograma) * 1.0 / c.CupoMaximo >= 0.05;
 
+--Vista 1 
 CREATE VIEW vw_SociosActivos AS
 SELECT s.id_socio, s.Nombre, s.DNI, s.Mail, s.NumeroTelefono, s.FechaAlta, s.EstadoMedico, m.NombrePlan, m.Costo, m.Beneficios
 FROM Socio s
 JOIN Membresia m ON s.id_membresia = m.id_membresia;
 
--- Uso:
+
+-- Uso: 
 SELECT * FROM vw_SociosActivos ORDER BY FechaAlta DESC;
+
+--Vista 2 
+CREATE VIEW vw_CronogramaCompleto AS
+SELECT c.id_cronograma, d.NombreDisciplina, p.Nombre AS Profesor, p.Mail AS MailProfesor, se.Direccion AS Sede, se.Telefono    AS TelefonoSede, c.Dia, c.Horario, c.CupoMaximo
+FROM Cronograma c
+JOIN Disciplina d ON c.id_disciplina = d.id_disciplina
+JOIN Profesor p ON c.id_profesor = p.id_profesor
+JOIN Sede se ON c.id_sede = se.id_sede;
+
+-- Uso:
+SELECT * FROM vw_CronogramaCompleto WHERE Dia = 'Lunes';
+
+--Vista 3
+CREATE VIEW vw_ReservasSocios AS
+SELECT r.id_reserva,so.Nombre AS Socio, d.NombreDisciplina, c.Dia, c.Horario, se.Direccion AS Sede, r.FechaReserva
+FROM Reserva r
+INNER JOIN Socio so ON r.id_socio = so.id_socio
+INNER JOIN Cronograma c ON r.id_cronograma = c.id_cronograma
+INNER JOIN Disciplina d ON c.id_disciplina = d.id_disciplina
+INNER JOIN Sede se ON c.id_sede = se.id_sede;
+
+-- Uso:
+SELECT * FROM vw_ReservasSocios WHERE Socio = 'Maria Garcia';
