@@ -208,7 +208,7 @@ INSERT INTO Socio (id_socio, id_membresia, Nombre, DNI, Mail, NumeroTelefono, Fe
 (17, 16, 'Carlos Diaz', '33332211', 'carlos@mail.com', '1522220017', '2026-05-15', 'Apto'),
 (18, 17, 'Marta Torres', '22221100', 'marta@mail.com', '1522220018', '2026-05-20', 'Apto'),
 (19, 18, 'Santiago Castro', '11110099', 'santiago@mail.com', '1522220019', '2026-05-25', 'Apto'),
-(20, 19, 'Valentina Ortiz', '00009988', 'valentina@mail.com', '1522220020', '2026-05-30', 'Apto');
+(20, 19, 'Valentino Ortiz', '00009918', 'valentino@mail.com', '1522220020', '2026-05-30', 'Apto');
 
 INSERT INTO Reserva (id_reserva, id_cronograma, id_socio, FechaReserva) VALUES 
 (1, 1, 1, '2026-05-20 10:00:00'),
@@ -254,3 +254,156 @@ INSERT INTO Pago (id_pago, id_socio, Fecha, Monto, MedioPago, PeriodoCubierto) V
 (19, 19, '2026-05-25', 1200.00, 'Tarjeta', 'Platinum'),
 (20, 20, '2026-05-30', 1500.00, 'Efectivo', 'Diamond');
 
+-- Listado de socios con su plan y fecha de alta
+SELECT s.id_socio, s.Nombre, s.DNI, m.NombrePlan, s.FechaAlta
+FROM Socio s
+JOIN Membresia m ON s.id_membresia = m.id_membresia
+ORDER BY s.FechaAlta DESC;
+
+-- Disciplinas disponibles
+SELECT *
+FROM Disciplina
+ORDER BY NombreDisciplina;
+
+-- Profesores y datos de contacto
+SELECT id_profesor, Nombre, DNI, Mail, NumeroTelefono
+FROM Profesor;
+
+-- Cronograma con disciplina, profesor y sede
+SELECT c.id_cronograma, d.NombreDisciplina, p.Nombre AS Profesor, s.Direccion AS Sede, c.Dia, c.Horario, c.CupoMaximo
+FROM Cronograma c
+JOIN Disciplina d ON c.id_disciplina = d.id_disciplina
+JOIN Profesor p ON c.id_profesor = p.id_profesor
+JOIN Sede s ON c.id_sede = s.id_sede
+ORDER BY c.Dia, c.Horario;
+
+-- Pagos del mes de mayo
+SELECT *
+FROM Pago
+WHERE Fecha >= '2026-05-01' AND Fecha < '2026-06-01'
+ORDER BY Fecha;
+
+-- Reservas con detalle de socio, disciplina, profesor y sede
+SELECT r.id_reserva, r.FechaReserva, so.Nombre AS Socio, d.NombreDisciplina, p.Nombre AS Profesor, se.Direccion AS Sede
+FROM Reserva r
+JOIN Socio so ON r.id_socio = so.id_socio
+JOIN Cronograma c ON r.id_cronograma = c.id_cronograma
+JOIN Disciplina d ON c.id_disciplina = d.id_disciplina
+JOIN Profesor p ON c.id_profesor = p.id_profesor
+JOIN Sede se ON c.id_sede = se.id_sede;
+
+-- Total pagado por cada socio (incluye los que no pagaron nada)
+SELECT s.id_socio, s.Nombre, ISNULL(SUM(p.Monto), 0) AS TotalPagado
+FROM Socio s
+LEFT JOIN Pago p ON p.id_socio = s.id_socio
+GROUP BY s.id_socio, s.Nombre
+ORDER BY TotalPagado DESC;
+
+-- Profesores y disciplinas que dictan
+SELECT DISTINCT p.Nombre, d.NombreDisciplina
+FROM Profesor p
+JOIN Cronograma c ON p.id_profesor = c.id_profesor
+JOIN Disciplina d ON c.id_disciplina = d.id_disciplina;
+
+-- Cantidad de clases programadas por sede
+SELECT se.Direccion, COUNT(c.id_cronograma) AS CantClases
+FROM Sede se
+LEFT JOIN Cronograma c ON se.id_sede = c.id_sede
+GROUP BY se.Direccion;
+
+-- Socios y las disciplinas en las que reservaron
+SELECT DISTINCT so.Nombre AS Socio, d.NombreDisciplina
+FROM Socio so
+JOIN Reserva r ON so.id_socio = r.id_socio
+JOIN Cronograma c ON r.id_cronograma = c.id_cronograma
+JOIN Disciplina d ON c.id_disciplina = d.id_disciplina;
+
+-- Total recaudado por medio de pago
+SELECT MedioPago, COUNT(*) AS Cant, SUM(Monto) AS Total
+FROM Pago
+GROUP BY MedioPago
+ORDER BY Total DESC;
+
+-- Cantidad de reservas por disciplina
+SELECT d.NombreDisciplina, COUNT(r.id_reserva) AS CantReservas
+FROM Disciplina d
+LEFT JOIN Cronograma c ON d.id_disciplina = c.id_disciplina
+LEFT JOIN Reserva r ON c.id_cronograma = r.id_cronograma
+GROUP BY d.NombreDisciplina
+ORDER BY CantReservas DESC;
+
+-- Promedio de pago por plan
+SELECT m.NombrePlan, AVG(p.Monto) AS Promedio, COUNT(p.id_pago) AS CantPagos
+FROM Membresia m
+JOIN Socio s ON m.id_membresia = s.id_membresia
+JOIN Pago p ON s.id_socio = p.id_socio
+GROUP BY m.NombrePlan;
+
+-- Disciplinas con mas de 2 reservas
+SELECT d.NombreDisciplina, COUNT(r.id_reserva) AS CantReservas
+FROM Disciplina d
+JOIN Cronograma c ON d.id_disciplina = c.id_disciplina
+JOIN Reserva r ON c.id_cronograma = r.id_cronograma
+GROUP BY d.NombreDisciplina
+HAVING COUNT(r.id_reserva) > 2;
+
+-- Profesores con mas de 2 clases asignadas
+SELECT p.Nombre, COUNT(c.id_cronograma) AS CantClases
+FROM Profesor p
+JOIN Cronograma c ON p.id_profesor = c.id_profesor
+GROUP BY p.Nombre
+HAVING COUNT(c.id_cronograma) > 2;
+
+-- Recaudacion por mes
+SELECT YEAR(Fecha) AS Anio, MONTH(Fecha) AS Mes, SUM(Monto) AS Total
+FROM Pago
+GROUP BY YEAR(Fecha), MONTH(Fecha)
+ORDER BY Anio, Mes;
+
+-- Subconsulta escalar: socios cuyo total pagado supera el promedio general
+SELECT s.id_socio, s.Nombre, SUM(p.Monto) AS TotalPagado
+FROM Socio s
+JOIN Pago p ON s.id_socio = p.id_socio
+GROUP BY s.id_socio, s.Nombre
+HAVING SUM(p.Monto) > (SELECT AVG(Monto) FROM Pago);
+
+-- Subconsulta con IN: socios que reservaron clases de Yoga
+SELECT id_socio, Nombre
+FROM Socio
+WHERE id_socio IN (
+    SELECT r.id_socio
+    FROM Reserva r
+    JOIN Cronograma c ON r.id_cronograma = c.id_cronograma
+    JOIN Disciplina d ON c.id_disciplina = d.id_disciplina
+    WHERE d.NombreDisciplina = 'Yoga'
+);
+
+-- Subconsulta con EXISTS: profesores con al menos una clase asignada
+SELECT id_profesor, Nombre
+FROM Profesor p
+WHERE EXISTS (SELECT 1 FROM Cronograma c WHERE c.id_profesor = p.id_profesor);
+
+-- Subconsulta con NOT EXISTS: socios que nunca reservaron
+SELECT id_socio, Nombre
+FROM Socio s
+WHERE NOT EXISTS (SELECT 1 FROM Reserva r WHERE r.id_socio = s.id_socio);
+
+-- Subconsulta correlacionada: ultimo pago de cada socio mayor al promedio de su plan
+SELECT s.Nombre, m.NombrePlan, p.Monto AS UltimoMonto, p.Fecha
+FROM Socio s
+JOIN Membresia m ON s.id_membresia = m.id_membresia
+JOIN Pago p ON p.id_socio = s.id_socio
+WHERE p.Fecha = (SELECT MAX(p2.Fecha) FROM Pago p2 WHERE p2.id_socio = s.id_socio)
+AND p.Monto > (
+    SELECT AVG(p3.Monto)
+    FROM Pago p3
+    JOIN Socio s3 ON p3.id_socio = s3.id_socio
+    WHERE s3.id_membresia = s.id_membresia
+);
+
+-- Subconsulta correlacionada: clases con ocupacion mayor o igual al 80%
+SELECT c.id_cronograma, d.NombreDisciplina, c.Dia, c.Horario, c.CupoMaximo,
+    (SELECT COUNT(*) FROM Reserva r WHERE r.id_cronograma = c.id_cronograma) AS Ocupacion
+FROM Cronograma c
+JOIN Disciplina d ON c.id_disciplina = d.id_disciplina
+WHERE (SELECT COUNT(*) FROM Reserva r WHERE r.id_cronograma = c.id_cronograma) * 1.0 / c.CupoMaximo >= 0.8;
