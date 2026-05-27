@@ -1,0 +1,256 @@
+CREATE DATABASE proyectoFinal;
+GO
+USE proyectoFinal;
+GO
+
+CREATE TABLE Disciplina (
+    id_disciplina INT PRIMARY KEY,
+    NombreDisciplina VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE Sede (
+    id_sede INT PRIMARY KEY,
+    Direccion VARCHAR(100) NOT NULL,
+    Telefono VARCHAR(20) NOT NULL,
+    CapacidadMaxima INT NOT NULL
+);
+
+CREATE TABLE Membresia (
+    id_membresia INT PRIMARY KEY,
+    NombrePlan VARCHAR(50) NOT NULL,
+    Costo NUMERIC(10, 2) NOT NULL,
+    Beneficios VARCHAR(300) NOT NULL
+);
+
+CREATE TABLE Profesor (
+    id_profesor INT PRIMARY KEY,
+    Nombre VARCHAR(100) NOT NULL,
+    DNI VARCHAR(20) UNIQUE NOT NULL,
+    Mail VARCHAR(100) NULL,
+    NumeroTelefono VARCHAR(20) NULL
+);
+
+CREATE TABLE Cronograma (
+    id_cronograma INT PRIMARY KEY,
+    id_disciplina INT NOT NULL,
+    id_sede INT NOT NULL,
+    id_profesor INT NOT NULL,
+    Dia VARCHAR(20) NOT NULL,
+    Horario TIME NOT NULL,
+    CupoMaximo INT NOT NULL,
+    CONSTRAINT FK_Cronograma_Disciplina FOREIGN KEY (id_disciplina) REFERENCES Disciplina(id_disciplina),
+    CONSTRAINT FK_Cronograma_Sede FOREIGN KEY (id_sede) REFERENCES Sede(id_sede),
+    CONSTRAINT FK_Cronograma_Profesor FOREIGN KEY (id_profesor) REFERENCES Profesor(id_profesor),
+    CONSTRAINT CHK_CupoPositivo CHECK (CupoMaximo > 0)
+);
+
+CREATE TABLE Socio (
+    id_socio INT PRIMARY KEY,
+    id_membresia INT NOT NULL,
+    Nombre VARCHAR(50) NOT NULL,
+    DNI VARCHAR(20) UNIQUE NOT NULL,
+    Mail VARCHAR(100) NULL,
+    NumeroTelefono VARCHAR(20) NULL,
+    FechaAlta DATE NOT NULL,
+    EstadoMedico VARCHAR(255) NOT NULL,
+    CONSTRAINT FK_Socio_Membresia FOREIGN KEY (id_membresia) REFERENCES Membresia(id_membresia)
+);
+
+CREATE TABLE Reserva (
+    id_reserva INT PRIMARY KEY,
+    id_cronograma INT NOT NULL,
+    id_socio INT NOT NULL,
+    FechaReserva DATETIME NOT NULL,
+    CONSTRAINT FK_Reserva_Cronograma FOREIGN KEY (id_cronograma) REFERENCES Cronograma(id_cronograma),
+    CONSTRAINT FK_Reserva_Socio FOREIGN KEY (id_socio) REFERENCES Socio(id_socio)
+);
+
+CREATE TABLE Pago (
+    id_pago INT PRIMARY KEY,
+    id_socio INT NOT NULL,
+    Fecha DATE NOT NULL,
+    Monto NUMERIC(10, 2) NOT NULL,
+    MedioPago VARCHAR(50) NOT NULL,
+    PeriodoCubierto VARCHAR(50) NOT NULL,
+    CONSTRAINT Pago_Socio FOREIGN KEY (id_socio) REFERENCES Socio(id_socio),
+    CONSTRAINT CHK_MontoPositivo CHECK (Monto > 0)
+);
+
+INSERT INTO Disciplina (id_disciplina, NombreDisciplina) VALUES 
+(1, 'Yoga'), 
+(2, 'Crossfit'), 
+(3, 'Natacion'), 
+(4, 'Pilates'),
+(5, 'Zumba'), 
+(6, 'Boxeo'), 
+(7, 'Spinning'), 
+(8, 'Kickboxing'),
+(9, 'Gimnasia Artistica'), 
+(10, 'Gimnasia Ritmica'), 
+(11, 'Atletismo'),
+(12, 'Futbol'), 
+(13, 'Basquetball'), 
+(14, 'Voleibol'), 
+(15, 'Tenis'),
+(16, 'Rugby'), 
+(17, 'Hockey'),
+(18, 'Ciclismo'), 
+(19, 'Esgrima'),
+(20, 'Artes Marciales');
+
+
+
+INSERT INTO Sede (id_sede, Direccion, Telefono, CapacidadMaxima) VALUES 
+(1, 'Av. Siempre Viva 123', '4444-1111', 20),
+(2, 'Calle Falsa 456', '4444-2222', 15),
+(3, 'Boulevard Central 789', '4444-3333', 10),
+(4, 'Avenida Principal 321', '4444-4444', 12),
+(5, 'Calle Secundaria 654', '4444-5555', 25),
+(6, 'Plaza Mayor 987', '4444-6666', 30),
+(7, 'Calle Tercera 111', '4444-7777', 18),
+(8, 'Avenida Secundaria 222', '4444-8888', 22),
+(9, 'Calle Cuarta 333', '4444-9999', 16),
+(10, 'Boulevard Secundario 444', '4444-0000', 14),
+(11, 'Avenida Tercera 555', '4444-1234', 20),
+(12, 'Calle Quinta 666', '4444-2345', 18),
+(13, 'Plaza Secundaria 777', '4444-3456', 25),
+(14, 'Avenida Cuarta 888', '4444-4567', 30),
+(15, 'Calle Sexta 999', '4444-5678', 12),
+(16, 'Boulevard Terciario 1111', '4444-6789', 22),
+(17, 'Avenida Quinta 2222', '4444-7890', 16),
+(18, 'Calle Septima 3333', '4444-8901', 14),
+(19, 'Plaza Terciaria 4444', '4444-9012', 20),
+(20, 'Avenida Sexta 5555', '4444-0123', 18);
+
+INSERT INTO Profesor (id_profesor, Nombre, DNI, Mail, NumeroTelefono) VALUES 
+(1, 'Ana Lopez', '11222333', 'ana@mail.com', '1511110001'),
+(2, 'Juan Perez', '22333444', 'juan@mail.com', '1511110002'),
+(3, 'Luis Gomez', '33444555', 'luis@mail.com', '1511110003'),
+(4, 'Sofia Martinez', '44555666', 'sofia@mail.com', '1511110004'),
+(5, 'Diego Fernandez', '55666777', 'diego@mail.com', '1511110005'),
+(6, 'Laura Sanchez', '66777888', 'laura@mail.com', '1511110006'),
+(7, 'Carlos Ramirez', '77888999', 'carlos@mail.com', '1511110007'),
+(8, 'Marta Diaz', '88999000', 'marta@mail.com', '1511110008'),
+(9, 'Jorge Torres', '99000111', 'jorge@mail.com', '1511110009'),
+(10, 'Lucia Alvarez', '10101010', 'lucia@mail.com', '1511110010'),
+(11, 'Santiago Castro', '11111111', 'santiago@mail.com', '1511110011'),
+(12, 'Valentina Ortiz', '12121212', 'valentina@mail.com', '1511110012'),
+(13, 'Federico Ramirez', '13131313', 'federico@mail.com', '1511110013'),
+(14, 'Camila Torres', '14141414', 'camila@mail.com', '1511110014'),
+(15, 'Matias Fernandez', '15151515', 'matias@mail.com', '1511110015'),
+(16, 'Sofia Gomez', '16161616', 'sofia@mail.com', '1511110016'),
+(17, 'Diego Sanchez', '17171717', 'diego@mail.com', '1511110017'),
+(18, 'Laura Ramirez', '18181818', 'laura@mail.com', '1511110018'),
+(19, 'Carlos Diaz', '19191919', 'carlos@mail.com', '1511110019'),
+(20, 'Marta Torres', '20202020', 'marta@mail.com', '1511110020');
+
+INSERT INTO Membresia (id_membresia, NombrePlan, Costo, Beneficios) VALUES 
+(1, 'Mensual', 50.00, 'Acceso ilimitado'),
+(2, 'Anual', 500.00, 'Acceso ilimitado + descuentos'),
+(3, 'Semestral', 250.00, 'Acceso ilimitado + 1 clase gratis'),
+(4, 'Trimestral', 150.00, 'Acceso ilimitado + 2 clases gratis'),
+(5, 'Familiar', 400.00, 'Acceso ilimitado para 4 personas'),
+(6, 'Estudiante', 30.00, 'Acceso ilimitado con credencial de estudiante'),
+(7, 'Senior', 40.00, 'Acceso ilimitado para mayores de 60 años'),
+(8, 'Corporativo', 1000.00, 'Acceso ilimitado para empleados de una empresa'),
+(9, 'VIP', 800.00, 'Acceso ilimitado + asesoramiento personalizado'),
+(10, 'Promocional', 20.00, 'Acceso limitado a ciertas disciplinas'),
+(11, 'Prueba', 10.00, 'Acceso limitado por 1 semana'),
+(12, 'Premium', 600.00, 'Acceso ilimitado + beneficios exclusivos'),
+(13, 'Básica', 40.00, 'Acceso limitado a ciertas disciplinas'),
+(14, 'Plus', 70.00, 'Acceso ilimitado + 1 clase gratis al mes'),
+(15, 'Gold', 900.00, 'Acceso ilimitado + beneficios VIP'),
+(16, 'Silver', 300.00, 'Acceso ilimitado + descuentos en productos'),
+(17, 'Bronze', 200.00, 'Acceso ilimitado + descuentos en clases'),
+(18, 'Platinum', 1200.00, 'Acceso ilimitado + asesoramiento personalizado y beneficios VIP'),
+(19, 'Diamond', 1500.00, 'Acceso ilimitado + beneficios exclusivos y asesoramiento personalizado'),
+(20, 'Basic Plus', 60.00, 'Acceso limitado a ciertas disciplinas + 1 clase gratis al mes');
+
+INSERT INTO Cronograma (id_cronograma, id_disciplina, id_sede, id_profesor, Dia, Horario, CupoMaximo) VALUES 
+(1, 1, 1, 1, 'Lunes', '08:00:00', 20),
+(2, 2, 2, 2, 'Martes', '10:00:00', 15),
+(3, 3, 1, 3, 'Miércoles', '18:00:00', 10),
+(4, 4, 2, 1, 'Jueves', '09:00:00', 12),
+(5, 5, 3, 2, 'Viernes', '19:00:00', 25),
+(6, 6, 4, 3, 'Sábado', '11:00:00', 30),
+(7, 7, 5, 1, 'Domingo', '17:00:00', 18),
+(8, 8, 6, 2, 'Lunes', '12:00:00', 22),
+(9, 9, 7, 3, 'Martes', '14:00:00', 16),
+(10, 10, 8, 1, 'Miércoles', '16:00:00', 14),
+(11, 11, 9, 2, 'Jueves', '20:00:00', 20),
+(12, 12, 10, 3, 'Viernes', '08:00:00', 18),
+(13, 13, 11, 1, 'Sábado', '09:00:00', 25),
+(14, 14, 12, 2, 'Domingo', '10:00:00', 30),
+(15, 15, 13, 3, 'Lunes', '18:00:00', 12),
+(16, 16, 14, 1, 'Martes', '19:00:00', 22),
+(17, 17, 15, 2, 'Miércoles', '20:00:00', 16),
+(18, 18, 16, 3, 'Jueves', '08:00:00', 14),
+(19, 19, 17, 1, 'Viernes', '09:00:00', 20),
+(20, 20, 18, 2, 'Sábado', '10:00:00', 18);
+
+INSERT INTO Socio (id_socio, id_membresia, Nombre, DNI, Mail, NumeroTelefono, FechaAlta, EstadoMedico) VALUES 
+(1, 1, 'Maria Garcia', '99888777', 'maria@mail.com', '1522220001', '2026-01-10', 'Apto'),
+(2, 2, 'Carlos Ruiz', '88777666', 'carlos@mail.com', '1522220002', '2026-02-15', 'Apto'),
+(3, 1, 'Lucia Fernandez', '77666555', 'lucia@mail.com', '1522220003', '2026-03-01', 'Apto'),
+(4, 3, 'Sofia Lopez', '66555444', 'sofia@mail.com', '1522220004', '2026-03-15', 'Apto'),
+(5, 4, 'Diego Martinez', '55444333', 'diego@mail.com', '1522220005', '2026-03-20', 'Apto'),
+(6, 5, 'Laura Sanchez', '44333222', 'laura@mail.com', '1522220006', '2026-03-25', 'Apto'),
+(7, 6, 'Jorge Ramirez', '33222111', 'jorge@mail.com', '1522220007', '2026-03-30', 'Apto'),
+(8, 7, 'Marta Diaz', '22111000', 'marta@mail.com', '1522220008', '2026-04-01', 'Apto'),
+(9, 8, 'Santiago Torres', '11000099', 'santiago@mail.com', '1522220009', '2026-04-05', 'Apto'),
+(10, 9, 'Valentina Ortiz', '00009988', 'valentina@mail.com', '1522220010', '2026-04-10', 'Apto'),
+(11, 10, 'Federico Ramirez', '99998877', 'federico@mail.com', '1522220011', '2026-04-15', 'Apto'),
+(12, 11, 'Camila Torres', '88887766', 'camila@mail.com', '1522220012', '2026-04-20', 'Apto'),
+(13, 12, 'Matias Fernandez', '77776655', 'matias@mail.com', '1522220013', '2026-04-25', 'Apto'),
+(14, 13, 'Sofia Gomez', '66665544', 'sofia@mail.com', '1522220014', '2026-04-30', 'Apto'),
+(15, 14, 'Diego Sanchez', '55554433', 'diego@mail.com', '1522220015', '2026-05-05', 'Apto'),
+(16, 15, 'Laura Ramirez', '44443322', 'laura@mail.com', '1522220016', '2026-05-10', 'Apto'),
+(17, 16, 'Carlos Diaz', '33332211', 'carlos@mail.com', '1522220017', '2026-05-15', 'Apto'),
+(18, 17, 'Marta Torres', '22221100', 'marta@mail.com', '1522220018', '2026-05-20', 'Apto'),
+(19, 18, 'Santiago Castro', '11110099', 'santiago@mail.com', '1522220019', '2026-05-25', 'Apto'),
+(20, 19, 'Valentina Ortiz', '00009988', 'valentina@mail.com', '1522220020', '2026-05-30', 'Apto');
+
+INSERT INTO Reserva (id_reserva, id_cronograma, id_socio, FechaReserva) VALUES 
+(1, 1, 1, '2026-05-20 10:00:00'),
+(2, 2, 2, '2026-05-20 11:00:00'),
+(3, 3, 3, '2026-05-21 09:00:00'),
+(4, 4, 4, '2026-05-21 10:00:00'),
+(5, 5, 5, '2026-05-21 11:00:00'),
+(6, 6, 6, '2026-05-22 08:00:00'),
+(7, 7, 7, '2026-05-22 09:00:00'),
+(8, 8, 8, '2026-05-22 10:00:00'),
+(9, 9, 9, '2026-05-22 11:00:00'),
+(10, 10, 10, '2026-05-23 08:00:00'),
+(11, 11, 11, '2026-05-23 09:00:00'),
+(12, 12, 12, '2026-05-23 10:00:00'),
+(13, 13, 13, '2026-05-23 11:00:00'),
+(14, 14, 14, '2026-05-24 08:00:00'),
+(15, 15, 15, '2026-05-24 09:00:00'),
+(16, 16, 16, '2026-05-24 10:00:00'),
+(17, 17, 17, '2026-05-24 11:00:00'),
+(18, 18, 18, '2026-05-25 08:00:00'),
+(19, 19, 19, '2026-05-25 09:00:00'),
+(20, 20, 20, '2026-05-25 10:00:00');
+
+INSERT INTO Pago (id_pago, id_socio, Fecha, Monto, MedioPago, PeriodoCubierto) VALUES 
+(1, 1, '2026-01-10', 50.00, 'Tarjeta', 'Enero'),
+(2, 2, '2026-02-15', 500.00, 'Efectivo', 'Anual'),
+(3, 3, '2026-03-01', 50.00, 'Transferencia', 'Marzo'),
+(4, 4, '2026-03-15', 150.00, 'Tarjeta', 'Trimestral'),
+(5, 5, '2026-03-20', 250.00, 'Efectivo', 'Semestral'),
+(6, 6, '2026-03-25', 400.00, 'Transferencia', 'Familiar'),
+(7, 7, '2026-03-30', 30.00, 'Tarjeta', 'Estudiante'),
+(8, 8, '2026-04-01', 40.00, 'Efectivo', 'Senior'),
+(9, 9, '2026-04-05', 1000.00, 'Transferencia', 'Corporativo'),
+(10, 10, '2026-04-10', 800.00, 'Tarjeta', 'VIP'),
+(11, 11, '2026-04-15', 20.00, 'Efectivo', 'Promocional'),
+(12, 12, '2026-04-20', 10.00, 'Transferencia', 'Prueba'),
+(13, 13, '2026-04-25', 600.00, 'Tarjeta', 'Premium'),
+(14, 14, '2026-04-30', 40.00, 'Efectivo', 'Básica'),
+(15, 15, '2026-05-05', 70.00, 'Transferencia', 'Plus'),
+(16, 16, '2026-05-10', 900.00, 'Tarjeta', 'Gold'),
+(17, 17, '2026-05-15', 300.00, 'Efectivo', 'Silver'),
+(18, 18, '2026-05-20', 200.00, 'Transferencia', 'Bronze'),
+(19, 19, '2026-05-25', 1200.00, 'Tarjeta', 'Platinum'),
+(20, 20, '2026-05-30', 1500.00, 'Efectivo', 'Diamond');
+
