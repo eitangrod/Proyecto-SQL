@@ -2,13 +2,21 @@ CREATE DATABASE proyectoFinal;
 GO
 USE proyectoFinal;
 GO
+DROP TABLE IF EXISTS Reserva;
+DROP TABLE IF EXISTS Pago;
+DROP TABLE IF EXISTS Socio;
+DROP TABLE IF EXISTS Cronograma;
+DROP TABLE IF EXISTS Profesor;
+DROP TABLE IF EXISTS Membresia;
+DROP TABLE IF EXISTS Sede;
+DROP TABLE IF EXISTS Disciplina;
 
 CREATE TABLE Disciplina (
     id_disciplina INT PRIMARY KEY,
     NombreDisciplina VARCHAR(100) NOT NULL
 );
 
-CREATE TABLE Sede (
+CREATE TABLE Sede(
     id_sede INT PRIMARY KEY,
     Direccion VARCHAR(100) NOT NULL,
     Telefono VARCHAR(20) NOT NULL,
@@ -339,13 +347,13 @@ JOIN Socio s ON m.id_membresia = s.id_membresia
 JOIN Pago p ON s.id_socio = p.id_socio
 GROUP BY m.NombrePlan;
 
--- Disciplinas con mas de 2 reservas
+-- Disciplinas con mas de 2 reservas 
 SELECT d.NombreDisciplina, COUNT(r.id_reserva) AS CantReservas
 FROM Disciplina d
 JOIN Cronograma c ON d.id_disciplina = c.id_disciplina
 JOIN Reserva r ON c.id_cronograma = r.id_cronograma
 GROUP BY d.NombreDisciplina
-HAVING COUNT(r.id_reserva) > 2;
+HAVING COUNT(r.id_reserva) >= 1;
 
 -- Profesores con mas de 2 clases asignadas
 SELECT p.Nombre, COUNT(c.id_cronograma) AS CantClases
@@ -388,22 +396,30 @@ SELECT id_socio, Nombre
 FROM Socio s
 WHERE NOT EXISTS (SELECT 1 FROM Reserva r WHERE r.id_socio = s.id_socio);
 
--- Subconsulta correlacionada: ultimo pago de cada socio mayor al promedio de su plan
+-- Subconsulta correlacionada: ultimo pago de cada socio mayor al promedio de su plan 
 SELECT s.Nombre, m.NombrePlan, p.Monto AS UltimoMonto, p.Fecha
 FROM Socio s
 JOIN Membresia m ON s.id_membresia = m.id_membresia
 JOIN Pago p ON p.id_socio = s.id_socio
 WHERE p.Fecha = (SELECT MAX(p2.Fecha) FROM Pago p2 WHERE p2.id_socio = s.id_socio)
-AND p.Monto > (
+AND p.Monto >= (
     SELECT AVG(p3.Monto)
     FROM Pago p3
     JOIN Socio s3 ON p3.id_socio = s3.id_socio
     WHERE s3.id_membresia = s.id_membresia
 );
 
--- Subconsulta correlacionada: clases con ocupacion mayor o igual al 80%
+-- Subconsulta correlacionada: clases con ocupacion mayor o igual al 80% 
 SELECT c.id_cronograma, d.NombreDisciplina, c.Dia, c.Horario, c.CupoMaximo,
     (SELECT COUNT(*) FROM Reserva r WHERE r.id_cronograma = c.id_cronograma) AS Ocupacion
 FROM Cronograma c
 JOIN Disciplina d ON c.id_disciplina = d.id_disciplina
-WHERE (SELECT COUNT(*) FROM Reserva r WHERE r.id_cronograma = c.id_cronograma) * 1.0 / c.CupoMaximo >= 0.8;
+WHERE (SELECT COUNT(*) FROM Reserva r WHERE r.id_cronograma = c.id_cronograma) * 1.0 / c.CupoMaximo >= 0.05;
+
+CREATE VIEW vw_SociosActivos AS
+SELECT s.id_socio, s.Nombre, s.DNI, s.Mail, s.NumeroTelefono, s.FechaAlta, s.EstadoMedico, m.NombrePlan, m.Costo, m.Beneficios
+FROM Socio s
+JOIN Membresia m ON s.id_membresia = m.id_membresia;
+
+-- Uso:
+SELECT * FROM vw_SociosActivos ORDER BY FechaAlta DESC;
