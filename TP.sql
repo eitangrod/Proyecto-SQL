@@ -423,3 +423,147 @@ JOIN Membresia m ON s.id_membresia = m.id_membresia;
 
 -- Uso:
 SELECT * FROM vw_SociosActivos ORDER BY FechaAlta DESC;
+
+
+
+-- Triggers --
+
+
+-- Membresia con costo mayor a 5000
+CREATE TRIGGER TR_CostoMayorA5000
+ON Membresia
+AFTER INSERT
+AS
+BEGIN
+
+	DECLARE @NombrePlan VARCHAR(50)
+	DECLARE @Costo DECIMAL(10,2)
+
+	SELECT 
+		@NombrePlan = NombrePlan,
+		@Costo = Costo
+	FROM inserted;
+
+	IF @Costo > 50000
+	BEGIN
+		PRINT 'El costo de la membresia '  +  @NombrePlan + ' es mayor a $5000'
+	END
+	ELSE
+	BEGIN
+		PRINT 'El costo de la membresia '  +  @NombrePlan + ' es menor a $5000'
+	END
+END;
+GO
+
+-- Monto mayor a 1000
+CREATE TRIGGER TR_MontoMayorA1000
+ON Pago
+AFTER INSERT
+AS
+BEGIN
+
+    DECLARE @ID INT
+    DECLARE @Monto DECIMAL(10,2)
+
+    SELECT
+        @ID = id_socio,
+        @Monto = Monto
+    FROM inserted;
+
+    IF @Monto > 1000
+    BEGIN
+        PRINT 'El socio con ID ' + CAST(@ID AS VARCHAR(10))
+              + ' realizo un pago alto de $'
+              + CAST(@Monto AS VARCHAR(20))
+    END
+    ELSE
+    BEGIN
+        PRINT 'Pago registrado correctamente.'
+    END
+
+END;
+GO
+
+-- Pago con metodo tarjeta
+CREATE TRIGGER TR_PagoTarjeta
+ON Pago
+AFTER INSERT
+AS
+BEGIN
+
+    DECLARE @MedioPago VARCHAR(50)
+
+    SELECT @MedioPago = MedioPago
+    FROM inserted;
+
+    IF @MedioPago = 'Tarjeta'
+    BEGIN
+        PRINT 'El pago fue realizado con tarjeta'
+    END
+    ELSE
+    BEGIN
+        PRINT 'El pago fue realizado por otro medio'
+    END
+
+END;
+GO
+
+-- Clases cuyo horario sean a la 10:00 AM
+CREATE TRIGGER TR_Clase10AM
+ON Cronograma
+AFTER INSERT
+AS
+BEGIN
+
+    DECLARE @Horario TIME
+
+    SELECT @Horario = Horario
+    FROM inserted;
+
+    IF @Horario = '10:00:00'
+    BEGIN
+        PRINT 'Se programo una clase a las 10:00 AM'
+    END
+    
+END;
+GO
+
+-- Membresia VIP
+CREATE TRIGGER TR_MembresiaVIP
+ON Membresia
+AFTER INSERT
+AS
+BEGIN
+
+    DECLARE @NombrePlan VARCHAR(50)
+
+    SELECT @NombrePlan = NombrePlan
+    FROM inserted;
+
+    IF @NombrePlan = 'VIP'
+    BEGIN
+        PRINT 'Se agrego una membresia VIP.'
+    END
+
+END;
+GO
+
+-- Pago anual
+CREATE TRIGGER TR_PagoAnual
+ON Pago
+AFTER INSERT
+AS
+BEGIN
+
+    DECLARE @Periodo VARCHAR(50)
+
+    SELECT @Periodo = PeriodoCubierto
+    FROM inserted;
+
+    IF @Periodo = 'Anual'
+    BEGIN
+        PRINT 'Se registro un pago de membresia anual.'
+    END
+
+END;
+GO
