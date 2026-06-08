@@ -416,20 +416,60 @@ FROM Cronograma c
 JOIN Disciplina d ON c.id_disciplina = d.id_disciplina
 WHERE (SELECT COUNT(*) FROM Reserva r WHERE r.id_cronograma = c.id_cronograma) * 1.0 / c.CupoMaximo >= 0.05;
 
+
+--Vista 1 
+DROP VIEW IF EXISTS vw_SociosActivos;
+GO
+
 CREATE VIEW vw_SociosActivos AS
 SELECT s.id_socio, s.Nombre, s.DNI, s.Mail, s.NumeroTelefono, s.FechaAlta, s.EstadoMedico, m.NombrePlan, m.Costo, m.Beneficios
 FROM Socio s
 JOIN Membresia m ON s.id_membresia = m.id_membresia;
+GO
+
+-- Uso: 
+SELECT * FROM vw_SociosActivos ORDER BY FechaAlta DESC;
+GO
+
+
+--Vista 2 
+DROP VIEW IF EXISTS vw_CronogramaCompleto;
+GO
+
+CREATE VIEW vw_CronogramaCompleto AS
+SELECT c.id_cronograma, d.NombreDisciplina, p.Nombre AS Profesor, p.Mail AS MailProfesor, se.Direccion AS Sede, se.Telefono    AS TelefonoSede, c.Dia, c.Horario, c.CupoMaximo
+FROM Cronograma c
+JOIN Disciplina d ON c.id_disciplina = d.id_disciplina
+JOIN Profesor p ON c.id_profesor = p.id_profesor
+JOIN Sede se ON c.id_sede = se.id_sede;
+GO
 
 -- Uso:
-SELECT * FROM vw_SociosActivos ORDER BY FechaAlta DESC;
+SELECT * FROM vw_CronogramaCompleto WHERE Dia = 'Lunes';
 
+
+--Vista 3
+DROP VIEW IF EXISTS vw_ReservasSocios;
+GO
+
+CREATE VIEW vw_ReservasSocios AS
+SELECT r.id_reserva,so.Nombre AS Socio, d.NombreDisciplina, c.Dia, c.Horario, se.Direccion AS Sede, r.FechaReserva
+FROM Reserva r
+INNER JOIN Socio so ON r.id_socio = so.id_socio
+INNER JOIN Cronograma c ON r.id_cronograma = c.id_cronograma
+INNER JOIN Disciplina d ON c.id_disciplina = d.id_disciplina
+INNER JOIN Sede se ON c.id_sede = se.id_sede;
+GO
+
+-- Uso:
+SELECT * FROM vw_ReservasSocios WHERE Socio = 'Maria Garcia';
 
 
 -- Triggers --
 
 
 -- Membresia con costo mayor a 5000
+GO
 CREATE TRIGGER TR_CostoMayorA5000
 ON Membresia
 AFTER INSERT
@@ -566,4 +606,228 @@ BEGIN
     END
 
 END;
+GO
+
+-- Insercion compleja: agregar una clase al cronograma
+CREATE PROCEDURE SP_AgregarClaseCronograma
+    @id_cronograma INT,
+    @id_disciplina INT,
+    @id_sede INT,
+    @id_profesor INT,
+    @Dia VARCHAR(20),
+    @Horario TIME,
+    @CupoMaximo INT
+AS
+BEGIN
+
+    IF EXISTS (SELECT 1 FROM Cronograma WHERE id_cronograma = @id_cronograma)
+    BEGIN
+        RAISERROR('Ya existe una clase con ese id_cronograma.', 16, 1);
+        RETURN
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM Disciplina WHERE id_disciplina = @id_disciplina)
+    BEGIN
+        RAISERROR('No existe la disciplina ingresada.', 16, 1);
+        RETURN;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM Sede WHERE id_sede = @id_sede)
+    BEGIN
+        RAISERROR('No existe la sede ingresada.', 16, 1);
+        RETURN;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM Profesor WHERE id_profesor = @id_profesor)
+    BEGIN
+        RAISERROR('No existe el profesor ingresado.', 16, 1);
+        RETURN
+    END
+
+    IF @CupoMaximo <= 0
+    BEGIN
+        RAISERROR('El cupo maximo debe ser mayor a cero.', 16, 1);
+        RETURN
+    END
+
+    IF @CupoMaximo > (SELECT CapacidadMaxima FROM Sede WHERE id_sede = @id_sede)
+    BEGIN
+        RAISERROR('El cupo maximo no puede superar la capacidad maxima de la sede.', 16, 1);
+        RETURN
+    END
+
+    IF EXISTS (SELECT 1 FROM Cronograma WHERE id_profesor = @id_profesor AND Dia = @Dia AND Horario = @Horario)
+    BEGIN
+        RAISERROR('El profesor ya tiene una clase asignada en ese dia y horario.', 16, 1);
+        RETURN
+    END
+
+    IF EXISTS (SELECT 1 FROM Cronograma WHERE id_sede = @id_sede AND Dia = @Dia AND Horario = @Horario)
+    BEGIN
+        RAISERROR('La sede ya tiene una clase asignada en ese dia y horario.', 16, 1);
+        RETURN
+    END
+
+    INSERT INTO Cronograma (id_cronograma, id_disciplina, id_sede, id_profesor, Dia, Horario, CupoMaximo)
+    VALUES (@id_cronograma, @id_disciplina, @id_sede, @id_profesor, @Dia, @Horario, @CupoMaximo)
+
+    PRINT 'Clase agregada correctamente al cronograma'
+
+END;
+GO
+
+--Ejemplo de uso
+BEGIN TRANSACTION
+
+EXEC SP_AgregarClaseCronograma
+    @id_cronograma = 21,
+    @id_disciplina = 1,
+    @id_sede = 1,
+    @id_profesor = 4,
+    @Dia = 'Lunes',
+    @Horario = '15:00:00',
+    @CupoMaximo = 15;
+
+SELECT *
+FROM Cronograma
+
+
+ROLLBACK TRANSACTION
+
+
+-- Insercion compleja: registrar un nuevo socio
+GO
+CREATE OR ALTER PROCEDURE sp_RegistrarSocio
+    @id_socio INT,
+    @id_membresia INT,
+    @Nombre VARCHAR(50),
+    @DNI VARCHAR(20),
+    @Mail VARCHAR(100),
+    @NumeroTelefono VARCHAR(20),
+    @FechaAlta DATE,
+    @EstadoMedico VARCHAR(255)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        -- Validar que el DNI no este registrado
+        IF EXISTS (SELECT 1 FROM Socio WHERE DNI = @DNI)
+        BEGIN
+            RAISERROR('Ya existe un socio con ese DNI.', 16, 1);
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        -- Validar que la membresia exista
+        IF NOT EXISTS (SELECT 1 FROM Membresia WHERE id_membresia = @id_membresia)
+        BEGIN
+            RAISERROR('La membresia indicada no existe.', 16, 1);
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        INSERT INTO Socio (id_socio, id_membresia, Nombre, DNI, Mail, NumeroTelefono, FechaAlta, EstadoMedico)
+        VALUES (@id_socio, @id_membresia, @Nombre, @DNI, @Mail, @NumeroTelefono, @FechaAlta, @EstadoMedico);
+
+        COMMIT TRANSACTION;
+        PRINT 'Socio registrado exitosamente.';
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+
+        PRINT 'Error al registrar el socio: ' + ERROR_MESSAGE();
+    END CATCH;
+END;
+GO
+
+--Ejemplo de uso
+BEGIN TRANSACTION
+
+EXEC sp_RegistrarSocio
+    @id_socio       = 21,
+    @id_membresia   = 1,
+    @Nombre         = 'Pedro Alvarez',
+    @DNI            = '12345678',
+    @Mail           = 'pedro@mail.com',
+    @NumeroTelefono = '1533330001',
+    @FechaAlta      = '2026-06-01',
+    @EstadoMedico   = 'Apto';
+
+SELECT *
+FROM Socio
+
+ROLLBACK TRANSACTION
+
+
+-- Consulta parametrizada: Cronograma por disciplina y dia
+GO
+CREATE OR ALTER PROCEDURE sp_ConsultarCronograma
+    @NombreDisciplina VARCHAR(100) = NULL,
+    @Dia              VARCHAR(20)  = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        c.id_cronograma,
+        d.NombreDisciplina,
+        p.Nombre AS Profesor,
+        se.Direccion AS Sede,
+        c.Dia,
+        c.Horario,
+        c.CupoMaximo,
+        COUNT(r.id_reserva) AS ReservasActuales,
+        c.CupoMaximo - COUNT(r.id_reserva) AS LugaresDisponibles
+    FROM Cronograma c
+    JOIN Disciplina d ON c.id_disciplina = d.id_disciplina
+    JOIN Profesor p ON c.id_profesor = p.id_profesor
+    JOIN Sede se ON c.id_sede = se.id_sede
+    LEFT JOIN Reserva r ON c.id_cronograma = r.id_cronograma
+    WHERE (@NombreDisciplina IS NULL OR d.NombreDisciplina = @NombreDisciplina)
+    AND (@Dia IS NULL OR c.Dia = @Dia)
+    GROUP BY c.id_cronograma, d.NombreDisciplina, p.Nombre, se.Direccion, c.Dia, c.Horario, c.CupoMaximo
+    ORDER BY c.Dia, c.Horario;
+END;
+GO
+
+-- Ejemplos de uso 
+EXEC sp_ConsultarCronograma @NombreDisciplina = 'Yoga';
+GO
+
+EXEC sp_ConsultarCronograma @Dia = 'Lunes';
+GO
+
+EXEC sp_ConsultarCronograma @NombreDisciplina = 'Futbol', @Dia = 'Viernes';
+GO
+
+
+-- Consulta parametrizada: Socios por tipo de membresia
+CREATE OR ALTER PROCEDURE sp_ConsultarSociosPorMembresia
+    @NombrePlan VARCHAR(50) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        s.id_socio,
+        s.Nombre,
+        s.DNI,
+        s.Mail,
+        s.NumeroTelefono,
+        s.FechaAlta,
+        s.EstadoMedico,
+        m.NombrePlan,
+        m.Costo
+    FROM Socio s
+    JOIN Membresia m ON s.id_membresia = m.id_membresia
+    WHERE (@NombrePlan IS NULL OR m.NombrePlan = @NombrePlan)
+    ORDER BY m.NombrePlan, s.Nombre;
+END;
+GO
+
+EXEC sp_ConsultarSociosPorMembresia @NombrePlan = 'Mensual';
 GO
