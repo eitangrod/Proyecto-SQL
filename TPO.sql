@@ -347,13 +347,13 @@ JOIN Socio s ON m.id_membresia = s.id_membresia
 JOIN Pago p ON s.id_socio = p.id_socio
 GROUP BY m.NombrePlan;
 
--- Disciplinas con mas de 2 reservas 
+-- Disciplinas con mas de 2 reservas
 SELECT d.NombreDisciplina, COUNT(r.id_reserva) AS CantReservas
 FROM Disciplina d
 JOIN Cronograma c ON d.id_disciplina = c.id_disciplina
 JOIN Reserva r ON c.id_cronograma = r.id_cronograma
 GROUP BY d.NombreDisciplina
-HAVING COUNT(r.id_reserva) >= 1;
+HAVING COUNT(r.id_reserva) > 2;
 
 -- Profesores con mas de 2 clases asignadas
 SELECT p.Nombre, COUNT(c.id_cronograma) AS CantClases
@@ -414,7 +414,7 @@ SELECT c.id_cronograma, d.NombreDisciplina, c.Dia, c.Horario, c.CupoMaximo,
     (SELECT COUNT(*) FROM Reserva r WHERE r.id_cronograma = c.id_cronograma) AS Ocupacion
 FROM Cronograma c
 JOIN Disciplina d ON c.id_disciplina = d.id_disciplina
-WHERE (SELECT COUNT(*) FROM Reserva r WHERE r.id_cronograma = c.id_cronograma) * 1.0 / c.CupoMaximo >= 0.05;
+WHERE (SELECT COUNT(*) FROM Reserva r WHERE r.id_cronograma = c.id_cronograma) * 1.0 / c.CupoMaximo >= 0.80;
 
 
 --Vista 1 
