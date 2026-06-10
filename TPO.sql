@@ -465,9 +465,6 @@ GO
 SELECT * FROM vw_ReservasSocios WHERE Socio = 'Maria Garcia';
 
 
--- Triggers --
-
-
 -- Membresia con costo mayor a 5000
 GO
 CREATE TRIGGER TR_CostoMayorA5000
@@ -484,7 +481,7 @@ BEGIN
 		@Costo = Costo
 	FROM inserted;
 
-	IF @Costo > 50000
+	IF @Costo > 5000
 	BEGIN
 		PRINT 'El costo de la membresia '  +  @NombrePlan + ' es mayor a $5000'
 	END
@@ -523,6 +520,7 @@ BEGIN
 
 END;
 GO
+
 
 -- Pago con metodo tarjeta
 CREATE TRIGGER TR_PagoTarjeta
